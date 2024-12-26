@@ -1,0 +1,12 @@
+[package]
+name = "esp_hal_dshot"
+authors = ["Michael DeGraw"]
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+embassy-executor = "0.6.1"
+embassy-time = "0.3.2"
+embedded-hal = "1.0.0"
+esp-hal = "0.21.1"
+fugit = "0.3.7"
