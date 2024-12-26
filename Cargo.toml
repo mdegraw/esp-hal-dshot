@@ -8,5 +8,5 @@ edition = "2021"
 embassy-executor = "0.6.1"
 embassy-time = "0.3.2"
 embedded-hal = "1.0.0"
-esp-hal = "0.21.1"
+esp-hal = { version = "0.21.1", default-features = false }
 fugit = "0.3.7"
