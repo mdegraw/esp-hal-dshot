@@ -1,8 +1,10 @@
 [package]
 name = "esp-hal-dshot"
-authors = ["Michael DeGraw"]
+authors = ["Michael DeGraw <michael.degraw@protonmail.com>"]
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/mdegraw/esc-hal-dshot"
+license = "Apache-2.0"
 
 [dependencies]
 embassy-executor = "0.6.1"
