@@ -100,7 +100,7 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
         }
     }
 
-    pub fn create_dshot_frame(value: u16) -> u16 {
+    pub fn create_frame(value: u16) -> u16 {
         let value = value & 0x07FF;
         let crc = (value ^ (value >> 4) ^ (value >> 8)) & 0xF;
         (value << 5) | (crc << 1)
@@ -108,7 +108,7 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
 
     // TODO: add telemetry
     pub fn create_pulses(&mut self, throttle_value: u16) -> [PulseCode; 17] {
-        let frame = Self::create_dshot_frame(throttle_value);
+        let frame = Self::create_frame(throttle_value);
         let mut pulses = [PulseCode::default(); 17];
 
         for i in 0..16 {
