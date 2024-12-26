@@ -130,17 +130,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dshot"
-version = "0.1.0"
-dependencies = [
- "embassy-executor",
- "embassy-time",
- "embedded-hal 1.0.0",
- "esp-hal",
- "fugit",
-]
-
-[[package]]
 name = "embassy-executor"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -412,6 +401,17 @@ dependencies = [
  "document-features",
  "riscv",
  "riscv-rt-macros",
+]
+
+[[package]]
+name = "esp_hal_dshot"
+version = "0.1.0"
+dependencies = [
+ "embassy-executor",
+ "embassy-time",
+ "embedded-hal 1.0.0",
+ "esp-hal",
+ "fugit",
 ]
 
 [[package]]
