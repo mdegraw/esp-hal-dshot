@@ -10,3 +10,13 @@ embassy-time = "0.3.2"
 embedded-hal = "1.0.0"
 esp-hal = { version = "0.21.1", default-features = false }
 fugit = "0.3.7"
+
+[features]
+default = ["esp32"]
+esp32 = ["esp-hal/esp32"]
+esp32c2 = ["esp-hal/esp32c2"]
+esp32c3 = ["esp-hal/esp32c3"]
+esp32c6 = ["esp-hal/esp32c6"]
+esp32h2 = ["esp-hal/esp32h2"]
+esp32s2 = ["esp-hal/esp32s2"]
+esp32s3 = ["esp-hal/esp32s3"]

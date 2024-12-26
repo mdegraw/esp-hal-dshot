@@ -84,6 +84,7 @@ impl DShotSpeed {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct DShot<TxCh> {
     channel: TxCh,
