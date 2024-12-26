@@ -69,7 +69,7 @@ impl DShotSpeed {
     }
 
     // TODO: update for other clock speeds and dividers
-    // These are for an 80 MHz clock with a clock divider setting of 1
+    /// These are for an 80 MHz clock with a clock divider setting of 1
     pub fn bit_times(&self) -> BitTime {
         match &self {
             // 200 = 2.5 µs,  400 = 5.0 µs
