@@ -410,13 +410,13 @@ dependencies = [
 
 [[package]]
 name = "esp-hal-dshot"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "embassy-executor",
  "embassy-time",
  "embedded-hal 1.0.0",
  "esp-hal",
- "fugit",
+ "num-traits",
 ]
 
 [[package]]
@@ -644,6 +644,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "libm"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
+
+[[package]]
 name = "litrs"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -705,6 +711,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]

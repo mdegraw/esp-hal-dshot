@@ -5,6 +5,7 @@ use esp_hal::{
     rmt::{asynch::TxChannelAsync, Channel, PulseCode},
     Async,
 };
+use num_traits::float::FloatCore;
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
@@ -44,6 +45,28 @@ impl BitTicks {
             t1_l: t0_h,
         }
     }
+
+    pub fn from_clk(clk_speed: u32, clk_divider: u8, bit_times: BitTimes) -> Self {
+        let tick_len = (1. / clk_speed as f32) * (clk_divider as f32) * 1_000_000.;
+
+        let t1_h = (bit_times.t1_h / tick_len).round() as u16;
+        let t0_h = (bit_times.t0_h / tick_len).round() as u16;
+
+        Self::new(t1_h, t0_h)
+    }
+}
+
+/// High and Low Times in microseconds
+#[derive(Debug, Clone, Copy)]
+pub struct BitTimes {
+    t0_h: f32,
+    t1_h: f32,
+}
+
+impl BitTimes {
+    pub fn new(t1_h: f32, t0_h: f32) -> Self {
+        Self { t0_h, t1_h }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -69,17 +92,22 @@ impl DShotSpeed {
         }
     }
 
-    // TODO: update for other clock speeds and dividers
-    /// These are for an 80 MHz clock with a clock divider setting of 1
-    pub fn bit_ticks(&self) -> BitTicks {
+    /// High and Low Times in microseconds
+    pub fn bit_times(&self) -> BitTimes {
         match &self {
-            // 200 = 2.5 µs,  400 = 5.0 µs
+            Self::DShot150 => BitTimes::new(5.00, 2.50),
+            Self::DShot300 => BitTimes::new(2.50, 1.25),
+            Self::DShot600 => BitTimes::new(1.25, 0.625),
+            Self::DShot1200 => BitTimes::new(0.625, 0.313),
+        }
+    }
+
+    /// These are for an 80 MHz clock with a clock divider setting of 1
+    pub fn default_bit_ticks(&self) -> BitTicks {
+        match &self {
             Self::DShot150 => BitTicks::new(400, 200),
-            // 100 = 1.25 µs,  200 = 2.5 µs
             Self::DShot300 => BitTicks::new(200, 100),
-            // 50 = 0.625 µs,  100 = 1.25 µs
             Self::DShot600 => BitTicks::new(100, 50),
-            // 25 = 0.3125 µs, 50 = 0.625 µs
             Self::DShot1200 => BitTicks::new(50, 25),
         }
     }
@@ -94,11 +122,21 @@ pub struct DShot<TxCh> {
 }
 
 impl<TxCh: TxChannelAsync> DShot<TxCh> {
-    pub fn new(channel: TxCh, speed: DShotSpeed, bit_ticks: Option<BitTicks>) -> Self {
+    pub fn new(
+        channel: TxCh,
+        speed: DShotSpeed,
+        clk_speed: Option<u32>,
+        clk_divider: Option<u8>,
+    ) -> Self {
+        let clk_speed = clk_speed.unwrap_or(80_000_000);
+        let clk_divider = clk_divider.unwrap_or(1);
+
+        let bit_ticks = BitTicks::from_clk(clk_speed, clk_divider, speed.bit_times());
+
         Self {
             channel,
             speed,
-            bit_ticks: bit_ticks.unwrap_or(speed.bit_ticks()),
+            bit_ticks,
         }
     }
 
