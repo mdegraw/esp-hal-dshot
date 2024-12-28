@@ -28,15 +28,15 @@ pub enum DSHOT_TELEMETRY_CMD {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct BitTime {
+pub struct BitTicks {
     t0_h: u16,
     t0_l: u16,
     t1_h: u16,
     t1_l: u16,
 }
 
-impl BitTime {
-    pub fn new(t0_h: u16, t1_h: u16) -> Self {
+impl BitTicks {
+    pub fn new(t1_h: u16, t0_h: u16) -> Self {
         Self {
             t0_h,
             t1_h,
@@ -55,6 +55,7 @@ pub enum DShotSpeed {
 }
 
 impl DShotSpeed {
+    // pub fn
     pub fn bit_period_ns(&self) -> u32 {
         match self {
             // 6.67µs per bit
@@ -70,16 +71,16 @@ impl DShotSpeed {
 
     // TODO: update for other clock speeds and dividers
     /// These are for an 80 MHz clock with a clock divider setting of 1
-    pub fn bit_times(&self) -> BitTime {
+    pub fn bit_ticks(&self) -> BitTicks {
         match &self {
             // 200 = 2.5 µs,  400 = 5.0 µs
-            Self::DShot150 => BitTime::new(200, 400),
+            Self::DShot150 => BitTicks::new(400, 200),
             // 100 = 1.25 µs,  200 = 2.5 µs
-            Self::DShot300 => BitTime::new(100, 200),
+            Self::DShot300 => BitTicks::new(200, 100),
             // 50 = 0.625 µs,  100 = 1.25 µs
-            Self::DShot600 => BitTime::new(50, 100),
+            Self::DShot600 => BitTicks::new(100, 50),
             // 25 = 0.3125 µs, 50 = 0.625 µs
-            Self::DShot1200 => BitTime::new(25, 50),
+            Self::DShot1200 => BitTicks::new(50, 25),
         }
     }
 }
@@ -89,27 +90,29 @@ impl DShotSpeed {
 pub struct DShot<TxCh> {
     channel: TxCh,
     speed: DShotSpeed,
-    bit_times: BitTime,
+    bit_ticks: BitTicks,
 }
 
 impl<TxCh: TxChannelAsync> DShot<TxCh> {
-    pub fn new(channel: TxCh, speed: DShotSpeed, bit_times: Option<BitTime>) -> Self {
+    pub fn new(channel: TxCh, speed: DShotSpeed, bit_ticks: Option<BitTicks>) -> Self {
         Self {
             channel,
             speed,
-            bit_times: bit_times.unwrap_or(speed.bit_times()),
+            bit_ticks: bit_ticks.unwrap_or(speed.bit_ticks()),
         }
     }
 
-    pub fn create_frame(value: u16) -> u16 {
-        let value = value & 0x07FF;
-        let crc = (value ^ (value >> 4) ^ (value >> 8)) & 0xF;
-        (value << 5) | (crc << 1)
+    pub fn create_frame(value: u16, telemetry: bool) -> u16 {
+        // Mask to 11 bits (0-2047 range) and set telemetry bit
+        let frame = ((value & 0x07FF) << 1) | telemetry as u16;
+
+        let crc = (frame ^ (frame >> 4) ^ (frame >> 8)) & 0xF;
+
+        (frame << 4) | crc
     }
 
-    // TODO: add telemetry
-    pub fn create_pulses(&mut self, throttle_value: u16) -> [PulseCode; 17] {
-        let frame = Self::create_frame(throttle_value);
+    pub fn create_pulses(&mut self, throttle_value: u16, telemetry: bool) -> [PulseCode; 17] {
+        let frame = Self::create_frame(throttle_value, telemetry);
         let mut pulses = [PulseCode::default(); 17];
 
         for i in 0..16 {
@@ -118,16 +121,16 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
             pulses[i] = if bit == 1 {
                 PulseCode {
                     level1: true,
-                    length1: self.bit_times.t1_h,
+                    length1: self.bit_ticks.t1_h,
                     level2: false,
-                    length2: self.bit_times.t1_l,
+                    length2: self.bit_ticks.t1_l,
                 }
             } else {
                 PulseCode {
                     level1: true,
-                    length1: self.bit_times.t0_h,
+                    length1: self.bit_ticks.t0_h,
                     level2: false,
-                    length2: self.bit_times.t0_l,
+                    length2: self.bit_ticks.t0_l,
                 }
             };
         }
@@ -137,8 +140,12 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
         pulses
     }
 
-    pub async fn write_throttle(&mut self, throttle: u16) -> Result<(), &'static str> {
-        let pulses = self.create_pulses(throttle);
+    pub async fn write_throttle(
+        &mut self,
+        throttle: u16,
+        telemetry: bool,
+    ) -> Result<(), &'static str> {
+        let pulses = self.create_pulses(throttle, telemetry);
         self.channel
             .transmit(&pulses)
             .await
@@ -148,7 +155,7 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
 
     pub async fn arm(&mut self) -> Result<(), &'static str> {
         for _ in 0..100 {
-            self.write_throttle(0).await?;
+            self.write_throttle(0, false).await?;
             Timer::after(Duration::from_millis(20)).await;
         }
 
@@ -181,10 +188,10 @@ impl QuadMotors {
 
     pub async fn arm(&mut self) -> Result<(), &'static str> {
         for _ in 0..100 {
-            self.motor1.write_throttle(0).await?;
-            self.motor2.write_throttle(0).await?;
-            self.motor3.write_throttle(0).await?;
-            self.motor4.write_throttle(0).await?;
+            self.motor1.write_throttle(0, false).await?;
+            self.motor2.write_throttle(0, false).await?;
+            self.motor3.write_throttle(0, false).await?;
+            self.motor4.write_throttle(0, false).await?;
 
             Timer::after(Duration::from_millis(20)).await;
         }
@@ -193,10 +200,10 @@ impl QuadMotors {
     }
 
     pub async fn update_throttles(&mut self, throttles: &[u16; 4]) -> Result<(), &'static str> {
-        self.motor1.write_throttle(throttles[0]).await?;
-        self.motor2.write_throttle(throttles[1]).await?;
-        self.motor3.write_throttle(throttles[2]).await?;
-        self.motor4.write_throttle(throttles[3]).await?;
+        self.motor1.write_throttle(throttles[0], false).await?;
+        self.motor2.write_throttle(throttles[1], false).await?;
+        self.motor3.write_throttle(throttles[2], false).await?;
+        self.motor4.write_throttle(throttles[3], false).await?;
 
         Ok(())
     }

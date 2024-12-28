@@ -410,7 +410,7 @@ dependencies = [
 
 [[package]]
 name = "esp-hal-dshot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "embassy-executor",
  "embassy-time",
