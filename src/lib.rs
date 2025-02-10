@@ -1,10 +1,7 @@
 #![no_std]
 
-use embassy_time::{Duration, Timer};
-use esp_hal::{
-    rmt::{asynch::TxChannelAsync, Channel, PulseCode},
-    Async,
-};
+use embedded_hal_async::delay::DelayNs;
+use esp_hal::rmt::{asynch::TxChannelAsync, PulseCode};
 use num_traits::float::FloatCore;
 
 #[allow(dead_code)]
@@ -56,7 +53,7 @@ impl BitTicks {
     }
 }
 
-/// High and Low Times in microseconds
+/// High and Low Times in µs
 #[derive(Debug, Clone, Copy)]
 pub struct BitTimes {
     t0_h: f32,
@@ -78,7 +75,6 @@ pub enum DShotSpeed {
 }
 
 impl DShotSpeed {
-    // pub fn
     pub fn bit_period_ns(&self) -> u32 {
         match self {
             // 6.67µs per bit
@@ -92,7 +88,7 @@ impl DShotSpeed {
         }
     }
 
-    /// High and Low Times in microseconds
+    /// High and Low Times in µs
     pub fn bit_times(&self) -> BitTimes {
         match &self {
             Self::DShot150 => BitTimes::new(5.00, 2.50),
@@ -140,19 +136,23 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
         }
     }
 
+    pub fn calculate_crc(frame: u16) -> u16 {
+        (frame ^ (frame >> 4) ^ (frame >> 8)) & 0xF
+    }
+
     pub fn create_frame(value: u16, telemetry: bool) -> u16 {
         // Mask to 11 bits (0-2047 range) and set telemetry bit
         let frame = ((value & 0x07FF) << 1) | telemetry as u16;
 
-        let crc = (frame ^ (frame >> 4) ^ (frame >> 8)) & 0xF;
+        let crc = Self::calculate_crc(frame);
 
         (frame << 4) | crc
     }
 
+    #[allow(clippy::needless_range_loop)]
     pub fn create_pulses(&mut self, throttle_value: u16, telemetry: bool) -> [PulseCode; 17] {
         let frame = Self::create_frame(throttle_value, telemetry);
         let mut pulses = [PulseCode::default(); 17];
-
         for i in 0..16 {
             let bit = (frame >> (15 - i)) & 1;
 
@@ -191,57 +191,11 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
         Ok(())
     }
 
-    pub async fn arm(&mut self) -> Result<(), &'static str> {
+    pub async fn arm(&mut self, delay: &mut impl DelayNs) -> Result<(), &'static str> {
         for _ in 0..100 {
             self.write_throttle(0, false).await?;
-            Timer::after(Duration::from_millis(20)).await;
+            delay.delay_ms(20).await;
         }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug)]
-pub struct QuadMotors {
-    pub motor1: DShot<Channel<Async, 0>>,
-    pub motor2: DShot<Channel<Async, 1>>,
-    pub motor3: DShot<Channel<Async, 2>>,
-    pub motor4: DShot<Channel<Async, 3>>,
-}
-
-impl QuadMotors {
-    pub fn new(
-        motor1: DShot<Channel<Async, 0>>,
-        motor2: DShot<Channel<Async, 1>>,
-        motor3: DShot<Channel<Async, 2>>,
-        motor4: DShot<Channel<Async, 3>>,
-    ) -> Self {
-        Self {
-            motor1,
-            motor2,
-            motor3,
-            motor4,
-        }
-    }
-
-    pub async fn arm(&mut self) -> Result<(), &'static str> {
-        for _ in 0..100 {
-            self.motor1.write_throttle(0, false).await?;
-            self.motor2.write_throttle(0, false).await?;
-            self.motor3.write_throttle(0, false).await?;
-            self.motor4.write_throttle(0, false).await?;
-
-            Timer::after(Duration::from_millis(20)).await;
-        }
-
-        Ok(())
-    }
-
-    pub async fn update_throttles(&mut self, throttles: &[u16; 4]) -> Result<(), &'static str> {
-        self.motor1.write_throttle(throttles[0], false).await?;
-        self.motor2.write_throttle(throttles[1], false).await?;
-        self.motor3.write_throttle(throttles[2], false).await?;
-        self.motor4.write_throttle(throttles[3], false).await?;
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 [package]
 name = "esp-hal-dshot"
 authors = ["Michael DeGraw <michael.degraw@protonmail.com>"]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Basic async no_std DSHOT implementation for esp-hal. Utilizes embassy-rs and Remote Control Peripheral (RMT) to send the DSHOT frames as pulses."
 keywords = ["esp32", "DSHOT"]
@@ -9,9 +9,8 @@ repository = "https://github.com/mdegraw/esp-hal-dshot"
 license = "Apache-2.0"
 
 [dependencies]
-embassy-executor = "0.6.1"
-embassy-time = "0.3.2"
 embedded-hal = "1.0.0"
+embedded-hal-async = "1.0.0"
 esp-hal = { version = "0.21.1", default-features = false }
 num-traits = { version = "0.2.19", default-features = false, features = ["libm"] }
 
