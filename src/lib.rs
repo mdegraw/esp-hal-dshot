@@ -1,7 +1,10 @@
 #![no_std]
 
 use embedded_hal_async::delay::DelayNs;
-use esp_hal::rmt::{asynch::TxChannelAsync, PulseCode};
+use esp_hal::{
+    gpio::Level,
+    rmt::{PulseCode, TxChannelAsync},
+};
 use num_traits::float::FloatCore;
 
 #[allow(dead_code)]
@@ -150,31 +153,31 @@ impl<TxCh: TxChannelAsync> DShot<TxCh> {
     }
 
     #[allow(clippy::needless_range_loop)]
-    pub fn create_pulses(&mut self, throttle_value: u16, telemetry: bool) -> [PulseCode; 17] {
+    pub fn create_pulses(&mut self, throttle_value: u16, telemetry: bool) -> [u32; 17] {
         let frame = Self::create_frame(throttle_value, telemetry);
-        let mut pulses = [PulseCode::default(); 17];
+        let mut pulses = [0; 17];
         for i in 0..16 {
             let bit = (frame >> (15 - i)) & 1;
 
             pulses[i] = if bit == 1 {
-                PulseCode {
-                    level1: true,
-                    length1: self.bit_ticks.t1_h,
-                    level2: false,
-                    length2: self.bit_ticks.t1_l,
-                }
+                PulseCode::new(
+                    Level::High,
+                    self.bit_ticks.t1_h,
+                    Level::Low,
+                    self.bit_ticks.t1_l,
+                )
             } else {
-                PulseCode {
-                    level1: true,
-                    length1: self.bit_ticks.t0_h,
-                    level2: false,
-                    length2: self.bit_ticks.t0_l,
-                }
+                PulseCode::new(
+                    Level::High,
+                    self.bit_ticks.t0_h,
+                    Level::Low,
+                    self.bit_ticks.t0_l,
+                )
             };
         }
 
         // Add empty pulse to end of pulses frame
-        pulses[16] = PulseCode::default();
+        pulses[16] = 0;
         pulses
     }
 
