@@ -1,7 +1,7 @@
 [package]
 name = "esp-hal-dshot"
 authors = ["Michael DeGraw <michael.degraw@protonmail.com>"]
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 description = "Basic async no_std DSHOT implementation for esp-hal. Utilizes Remote Control Peripheral (RMT) to send DSHOT frames as pulses."
 keywords = ["esp32", "DSHOT"]
